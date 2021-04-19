@@ -72,7 +72,7 @@ function ( qlik, template, definition, dialogTemplate, cssStyle, Util) {
 									qShowHidden:true
 								}}, function(reply){
 							//console.log("Field List");
-							//console.log(reply);
+							// console.log(reply);
 							$scope.input.fieldList = reply.qFieldList.qItems.filter(a => a.qName.substring(0,11) == '_MasterItem').map(a => a.qName);
 							//console.log($scope.input.fieldList);
 
@@ -218,12 +218,13 @@ function ( qlik, template, definition, dialogTemplate, cssStyle, Util) {
 								var tagCol = table.getColByName('_MasterItemTags');
 								var countCol = table.getColByName('_KeyCount');
 								var labelExpCol = table.getColByName('_MasterItemLabel');
+								var numFormatPatternCol = table.getColByName('_MasterItemFormatPattern');
 								//console.log("Accumulate Column: " + accumulateCol);
 
 
 
 								$scope.input.masterScriptList.rows.forEach(function(row, rowNum) {
-	    						//console.log(row);
+	    						// console.log(row);
 									var error = false;
 									var errors = [];
 									var fieldsList = [];
@@ -301,6 +302,14 @@ function ( qlik, template, definition, dialogTemplate, cssStyle, Util) {
 										prevProcessed = $scope.input.masterScriptListInternal[rowNum].processed;
 									}
 
+									// RK - Add Number Format Support
+									var numFormatPattern;
+									if(typeof row.cells[numFormatPatternCol] != 'undefined'){
+										numFormatPattern = row.cells[numFormatPatternCol].qText;
+									}
+
+									console.log(numFormatPattern);
+
 									var itemData = {
 										rowNumber:rowNum,
 										rowType: row.cells[typeCol].qText,
@@ -315,8 +324,11 @@ function ( qlik, template, definition, dialogTemplate, cssStyle, Util) {
 										status: "Pending",
 										processed: prevProcessed,
 										error: error,
-										errors: errors
+										errors: errors,
+										numFormatPattern: numFormatPattern
 									};
+
+									console.log(itemData);
 
 									if(itemData.error){
 										itemData.status = "Error";
@@ -451,6 +463,14 @@ function ( qlik, template, definition, dialogTemplate, cssStyle, Util) {
 									}
 								};
 							}
+							console.log(t.numFormatPattern);
+							var qNumFormat = {}
+							if(t.numFormatPattern != "-"){
+								qNumFormat = {
+									qType: "R",
+									qFmt: t.numFormatPattern
+								}
+							}
 
 							var mesJSON =
 							{
@@ -464,7 +484,8 @@ function ( qlik, template, definition, dialogTemplate, cssStyle, Util) {
 									qExpressions:[],
 									qActiveExpression: 0,
 									qLabelExpression:t.labelExpression,
-									coloring:colorBlock
+									coloring:colorBlock,
+									qNumFormat: qNumFormat
 								},
 								qMetaDef: {
 									title:t.displayName,
@@ -479,7 +500,7 @@ function ( qlik, template, definition, dialogTemplate, cssStyle, Util) {
 									//console.log("Updating: "+ t.qId);
 									return $scope.input.appModel.getMeasure(t.qId).then((data) => {
 										//console.log("Updating Measure");
-										//console.log(data);
+										console.log(data);
 										data.setProperties(mesJSON);
 										t.processed = "Updated";
 									 });
