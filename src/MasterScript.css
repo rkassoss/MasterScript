@@ -47,7 +47,17 @@
 	padding: 5px;
 }
 
+.column {
+  width: 100px;
+  overflow: auto;
+  padding: 0 5px;
+}
 
+.column3 {
+  width: 300px;
+}
+
+/* 
 .column1 {
   width:25%;
   float:left;
@@ -79,7 +89,7 @@
   clear:none;
   font-weight: bold;
   text-align: center;
-}
+} */
 
 .topButton {
   float:right;
@@ -96,6 +106,11 @@
   border-radius: 8px;
   margin:0 auto;
   border:1px solid #CCCCCC;
+}
+
+code {
+  display: block;
+  white-space: pre-wrap   
 }
 
 .fieldoval {
