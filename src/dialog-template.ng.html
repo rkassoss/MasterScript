@@ -25,7 +25,7 @@
 					<div class="column4 column"><div ng-if="row.color == '-'">&nbsp;</div><div ng-if="row.color != '-'" class="colorDisc" style="background-color:{{row.color}}">&nbsp;</div></div>
 					<div class="column5 column">{{row.status}}</div>
 					<div class="column5 column">{{row.processed}}</div>
-					<div class="column7 column">{{row.numFormatPattern}}</div>
+					<div class="column7 column">{{row.formatType}}</div>
 					<div class="errorList" ng-if="row.error">
 						<ul>
 							<li ng-repeat="error in row.errors"><span class="lui-bg-danger">{{error}}</span></li>

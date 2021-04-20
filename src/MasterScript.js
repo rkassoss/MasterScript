@@ -32,7 +32,21 @@ function ( qlik, template, definition, dialogTemplate, cssStyle, Util) {
 
 			//console.log($scope);
 
+			/* Get the formatting defaults from the app */
+			var app = qlik.currApp(this);
+			var defaultFormatVarsArray = ['ThousandSep','DecimalSep', 'MoneyThousandSep', 'MoneyDecimalSep'];
+			const defaultFormatVarsObj = {};
+			function getDefaultFormatVars(){
+				for (const key of defaultFormatVarsArray) {
+					app.variable.getContent( key ,function ( reply ) {
+						// console.log(key, reply.qContent.qString);
+						defaultFormatVarsObj[key] = reply.qContent.qString;
+					});
+				}
+			};
+
 			$scope.processButton = function($event){
+				getDefaultFormatVars();
 
 				$scope.openWizard();
 			};
@@ -94,8 +108,7 @@ function ( qlik, template, definition, dialogTemplate, cssStyle, Util) {
 							}
 
 						});
-
-
+					
 						/* Set the default tab and create the function which will allow for
 						the tab to be changed in code */
 						$scope.tabs = 'tab1';
@@ -209,7 +222,7 @@ function ( qlik, template, definition, dialogTemplate, cssStyle, Util) {
 						$scope.processItems = function(){
 							if($scope.input.tableReady && $scope.input.masterScriptList.colCount > 1){
 								var table = $scope.input.masterScriptList;
-								//console.log(table);
+								// console.log(table);
 								var iDCol = table.getColByName('_MasterItemID');
 								var typeCol = table.getColByName('_MasterItemType');
 								var nameCol = table.getColByName('_MasterItemName');
@@ -218,6 +231,7 @@ function ( qlik, template, definition, dialogTemplate, cssStyle, Util) {
 								var tagCol = table.getColByName('_MasterItemTags');
 								var countCol = table.getColByName('_KeyCount');
 								var labelExpCol = table.getColByName('_MasterItemLabel');
+								var numFormatTypeCol = table.getColByName('_MasterItemFormatType');
 								var numFormatPatternCol = table.getColByName('_MasterItemFormatPattern');
 								//console.log("Accumulate Column: " + accumulateCol);
 
@@ -302,14 +316,6 @@ function ( qlik, template, definition, dialogTemplate, cssStyle, Util) {
 										prevProcessed = $scope.input.masterScriptListInternal[rowNum].processed;
 									}
 
-									// RK - Add Number Format Support
-									var numFormatPattern;
-									if(typeof row.cells[numFormatPatternCol] != 'undefined'){
-										numFormatPattern = row.cells[numFormatPatternCol].qText;
-									}
-
-									console.log(numFormatPattern);
-
 									var itemData = {
 										rowNumber:rowNum,
 										rowType: row.cells[typeCol].qText,
@@ -325,10 +331,11 @@ function ( qlik, template, definition, dialogTemplate, cssStyle, Util) {
 										processed: prevProcessed,
 										error: error,
 										errors: errors,
-										numFormatPattern: numFormatPattern
+										formatType: row.cells[numFormatTypeCol].qText,
+										formatPattern: row.cells[numFormatPatternCol].qText
 									};
 
-									console.log(itemData);
+									// console.log(itemData);
 
 									if(itemData.error){
 										itemData.status = "Error";
@@ -463,12 +470,65 @@ function ( qlik, template, definition, dialogTemplate, cssStyle, Util) {
 									}
 								};
 							}
-							console.log(t.numFormatPattern);
+
+							// RK - Add Number Format Support
 							var qNumFormat = {}
-							if(t.numFormatPattern != "-"){
-								qNumFormat = {
-									qType: "R",
-									qFmt: t.numFormatPattern
+							console.log(t.displayName ,t.formatType, t.formatPattern, defaultFormatVarsObj.DecimalSep);
+							if((typeof t.formatPattern != 'undefined' ) && (t.formatPattern != '-') ){
+								if(typeof t.formatType != 'undefined'){
+									console.log('do we have defaultFormatVarsObj?',defaultFormatVarsObj);
+									switch(t.formatType) {
+										case "Number":
+											qNumFormat = {
+												qType: "R", // qType: "F", better set type to 'custom', to always display pattern on edit mode
+												qnDec: 2, 
+												qUseThou: 0,
+												qDec: defaultFormatVarsObj.DecimalSep, 
+												qThou: defaultFormatVarsObj.ThousandSep, 
+												qFmt: t.formatPattern
+											}
+											break;
+										case "Money":
+											qNumFormat = {
+												qType: "M", 
+												qnDec: 2, 
+												qUseThou: 0, 
+												qFmt: t.formatPattern, 
+												qDec: defaultFormatVarsObj.MoneyDecimalSep, 
+												qThou: defaultFormatVarsObj.MoneyThousandSep
+											}
+											break;
+									case "Date":
+											qNumFormat = {
+												qType: "D", 
+												qnDec: 2, 
+												qUseThou: 0, 
+												qFmt: t.formatPattern,  
+												qDec: "", 
+												qThou: ""
+											}
+											break;
+									case "Duration": 
+											qNumFormat = {
+												qType: "IV", 
+												qnDec: 2, 
+												qUseThou: 0, 
+												qFmt: t.formatPattern, 
+												qDec: "", 
+												qThou: ""
+											}
+											break;
+									case "Custom": 
+											qNumFormat = {
+												qType: "R", 
+												qnDec: 2, 
+												qUseThou: 0, 
+												qFmt: t.formatPattern, 
+												qDec: defaultFormatVarsObj.DecimalSep, 
+												qThou: defaultFormatVarsObj.ThousandSep
+											}
+											break; 
+									}
 								}
 							}
 
@@ -500,7 +560,7 @@ function ( qlik, template, definition, dialogTemplate, cssStyle, Util) {
 									//console.log("Updating: "+ t.qId);
 									return $scope.input.appModel.getMeasure(t.qId).then((data) => {
 										//console.log("Updating Measure");
-										console.log(data);
+										// console.log(data);
 										data.setProperties(mesJSON);
 										t.processed = "Updated";
 									 });
